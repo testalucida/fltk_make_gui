@@ -1,10 +1,12 @@
 #include "LayoutHelper.h"
 #include <FL/fl_draw.H>
+#include <FL/Fl_Group.H>
 #include <FL/Fl_Input.H>
 #include "Label.h"
 #include <stdexcept>
 #include <string>
 #include <cmath>
+#include <iostream>
 
 using namespace std;
 
@@ -46,6 +48,7 @@ Label* LayoutHelper::addLabel(UINT col, UINT row, char const *pTxt)
 	pLbl->labelfont(_settings.labelfont);
 	pLbl->labelsize(_settings.labelsize);
 	set(pLbl, col, row);
+	make_group_fit();
 	return pLbl;
 }
 
@@ -184,6 +187,43 @@ Fl_Widget* LayoutHelper::get_broadest_widget(int col) const {
 		}
 	}
 	return pW;
+}
+
+void LayoutHelper::make_group_fit() const {
+	int hmax = 0;
+	for (int c = 0, cmax = _widgetTable.size(); c < cmax; c++) {
+		int h = get_column_height(c);
+		hmax = (h > hmax) ? h : hmax;
+	}
+
+	Fl_Widget* pW = get_broadest_widget(_widgetTable.size() - 1);
+	int w = pW->x() + pW->w() + _margins.e;
+	_pGrp->size(w, hmax);
+}
+
+int LayoutHelper::get_column_height(int col) const {
+	int h = 0;
+	Fl_Widget* pW = get_bottom_widget(col);
+	if (pW) {
+		h = pW->y() + pW->h() + _margins.s;
+	}
+	return h;
+}
+
+int LayoutHelper::get_row_width(int row) const {
+	throw runtime_error("get_row_width: not yet implemented");
+}
+
+Fl_Widget* LayoutHelper::get_bottom_widget(int col) const {
+	WidgetVector *pCol = _widgetTable[col];
+	WidgetVector::reverse_iterator rit = pCol->rbegin();
+	for (; rit != pCol->rend(); ++rit) {
+		Widget *pW = *rit;
+		if (pW && pW->pWidget) {
+			return pW->pWidget;
+		}
+	}
+	return NULL;
 }
 
 } //namespace fluy

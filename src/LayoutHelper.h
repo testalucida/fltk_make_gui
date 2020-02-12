@@ -87,6 +87,10 @@ private:
 	int get_widgets_in_row(int row, WidgetVector* pWv);
 	Fl_Widget* get_broadest_widget(int col) const;
 	void calculate_stringsize();
+	void make_group_fit() const;
+	int get_column_height(int col) const;
+	int get_row_width(int row) const;
+	Fl_Widget* get_bottom_widget(int col) const;
 private:
 	Fl_Group* _pGrp;
 	WidgetTable _widgetTable;

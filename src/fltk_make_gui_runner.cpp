@@ -20,6 +20,7 @@ int main() {
 	Label* pLbl = lh.addLabel(0, 0, "Enter your name: ");
 	Fl_Input* pI = new Fl_Input(0,0,0,0);
 	lh.addInput(pI, 30, 1, 0);
+	lh.addLabel(2, 0, "And here goes your christian name: ");
 
 	//Label* pLbl = new Label(0, 0, 100, 25, "This is a Label.");
 
@@ -29,6 +30,7 @@ int main() {
 	pLbl->labelcolor(FL_DARK_BLUE);
 	*/
 	pW->end();
+	pW->resizable(pW);
 	pW->show();
 
 	return Fl::run();
