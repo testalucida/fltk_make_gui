@@ -15,12 +15,11 @@ using namespace fluy;
 
 int main() {
 	Layout lo;
-	lo.group_begin(GroupType::GROUP, true, 0, 0);
+	lo.group_begin(GroupType::DOUBLE_WINDOW, true, 0, 0);
 	Fl_Input* pI = new Fl_Input(0,0,0,0);
 	lo.add("Enter your name: ", 0, 0);
 	lo.add_in_out(pI, 30, 1, 1, 0);
-	lo.group_end();
-	Fl_Double_Window* pWin = (Fl_Double_Window*)lo.layout_end();
+	Fl_Double_Window* pWin = (Fl_Double_Window*)lo.group_end();
 
 	pWin->show();
 	return Fl::run();

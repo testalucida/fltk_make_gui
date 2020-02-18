@@ -74,7 +74,7 @@ class InOutWidgetDef : public WidgetDef {
 public:
 	InOutWidgetDef(Fl_Input*, int n_chars_wide, int n_chars_high,
 			       int colspan = 1, int rowspan = 1);
-private:
+
 	int n_chars_wide = 0;
 	int n_chars_high = 0;
 };
@@ -132,6 +132,8 @@ public:
 	int get_y(int row) const;
 	Fl_Widget* get_broadest_widget(int col) const;
 	Fl_Group* create_group();
+private:
+	void set_size_and_font(WidgetDef&);
 public:
 	GroupType grouptype = GroupType::UNK;
 	bool resizable = false;

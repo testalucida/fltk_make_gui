@@ -16,10 +16,7 @@ using namespace std;
 
 namespace fluy {
 
-Layout::Layout(GroupType type, bool resizable) {
-	_groupdef.grouptype = type;
-	_groupdef.resizable = resizable;
-	_groups_in_process.push_back(&_groupdef);
+Layout::Layout() {
 
 }
 
@@ -34,11 +31,15 @@ Settings& Layout::group_begin(GroupType type, bool resizable, int col, int row,
 	pGrpDef->resizable = resizable;
 	pGrpDef->colspan = colspan;
 	pGrpDef->rowspan = rowspan;
-	//parent (can't be NULL: there is at least a topmost groupdef):
-	GroupDef* pParent = _groups_in_process.back();
-	pGrpDef->pParent = pParent;
-	//add the new GroupDef object to its parent's children table:
-	pParent->add(pGrpDef, col, row);
+	if (!_pGroupdef) {
+		_pGroupdef = pGrpDef;
+	} else {
+		GroupDef* pParent = _groups_in_process.back();
+		pGrpDef->pParent = pParent;
+		//add the new GroupDef object to its parent's children table:
+		pParent->add(pGrpDef, col, row);
+	}
+
 	//add the new GroupDef object to groups_in_process:
 	_groups_in_process.push_back(pGrpDef);
 
@@ -59,9 +60,9 @@ Fl_Group* Layout::group_end() {
 	return pGrp;
 }
 
-Fl_Group* Layout::layout_end() {
-	return group_end();
-}
+//Fl_Group* Layout::layout_end() {
+//	return group_end();
+//}
 
 Settings& Layout::add(const char *pTxt, int col, int row,
 		         int colspan, int rowspan)

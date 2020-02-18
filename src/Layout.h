@@ -30,7 +30,7 @@ namespace fluy {
  */
 class Layout {
 public:
-	Layout(GroupType type = GroupType::DOUBLE_WINDOW, bool resizable = true);
+	Layout();
 	virtual ~Layout();
 	/**
 	 * Starts a group of the given kind (Group::GROUP, Group::TILE,...)
@@ -84,14 +84,14 @@ public:
 	 * Returns a pointer to the hierarchical topmost group (typically a
 	 * Fl_Double_Window).
 	 */
-	Fl_Group* layout_end();
+	//Fl_Group* layout_end();
 private:
 	Settings& add_widgetdef(WidgetDef*, int col, int row);
 private:
 	/**
 	 * typically the groups and widgets of the Fl_Double_Window
 	 */
-	GroupDef _groupdef;
+	GroupDef* _pGroupdef = NULL;
 	/**
 	 * Each call to group_begin() results in creating a
 	 * GroupDef object and storing it in a vector.

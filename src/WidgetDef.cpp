@@ -9,6 +9,7 @@
 #include <FL/Fl_Widget.H>
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Group.H>
+#include "Label.h"
 #include <string>
 #include <cmath>
 #include <stdexcept>
@@ -112,7 +113,7 @@ bool GroupDef::has_grouptype_children() const {
 int GroupDef::get_x(int col) const {
 	int x = settings.margins.w;
 	if (columns() <= col) {
-		string msg = "Layout::get_x(): Group has no column ";
+		string msg = "GroupDef::get_x(): Group has no column ";
 		msg.append(to_string(col));
 		throw range_error(msg);
 	}
@@ -177,16 +178,71 @@ Fl_Widget* GroupDef::get_broadest_widget(int col) const {
 }
 
 Fl_Group* GroupDef::create_group() {
-	//condition: there's no groupdef child in this group.
+	//Precondition: there's no groupdef child in this group.
+	//
+	//Iterate over all widgetDefs, calculate each Fl_Widget's position
+	//and size and create a Fl_Group objects according to
+	//the Fl_Widget*s positions and sizes.
+	//Finally add the Fl_Widget*s to the created Fl_Group.
 	if (has_grouptype_children()) {
 		throw runtime_error("GroupDef::create_group: no group child allowed.");
 	}
 
 	for (int c = 0, cmax = columns(); c < cmax; c++) {
+		int x = get_x(c);
 		for (int r = 0, rmax = rows(c); r < rmax; r++) {
 			WidgetDef& widef = children.get(c, r);
+			Fl_Widget* pW = widef.pWidget;
+			int y = get_y(r);
+			//set position:
+			pW->position(x, y);
+			set_size_and_font(widef);
 		}
 	}
+	//calculate group's position:
+
+	//calculate group's size:
+
+	//create Fl_Group:
+
+	return NULL;
+}
+
+void GroupDef::set_size_and_font(WidgetDef& widef) {
+	Fl_Widget* pW = widef.pWidget;
+	TextMeasure& tm = TextMeasure::inst();
+	Fonts fonts = widef.settings.fonts;
+	switch(widef.type) {
+	case WidgetType::LABEL:
+	{
+		Size size = tm.get_size(pW->label(), fonts.labelfont, fonts.labelsize);
+		pW->size(size.w, size.h);
+	}
+	break;
+	case WidgetType::SINGLE_IN_OUT:
+	case WidgetType::MULTI_IN_OUT:
+	{
+		InOutWidgetDef& inout = (InOutWidgetDef&)widef;
+		Size size =
+			tm.get_size(inout.n_chars_wide, fonts.textfont, fonts.textsize);
+		size.h = size.h * inout.n_chars_high;
+		pW->size(size.w, size.h);
+		Fl_Input* pI = (Fl_Input*)pW;
+		pI->textfont(fonts.textfont);
+		pI->textsize(fonts.textsize);
+		pI->textcolor(fonts.textcolor);
+	}
+	break;
+	case WidgetType::BUTTON_WITH_RIGHTSIDE_TEXT:
+	break;
+	case WidgetType::OTHER:
+	break;
+	default:
+		throw runtime_error("GroupDef::get_size(): unknown WidgetType");
+	} //switch
+	pW->labelfont(fonts.labelfont);
+	pW->labelsize(fonts.labelsize);
+	pW->labelcolor(fonts.labelcolor);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
