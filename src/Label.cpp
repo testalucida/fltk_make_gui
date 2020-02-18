@@ -16,6 +16,11 @@ Label::Label(int x, int y, int w, int h, const char* pTxt)
 Label::~Label() {
 }
 
+void Label::resize(int x, int y, int w, int h) {
+//	Fl_Widget::resize(x, y, this->w(), this->h());
+	Fl_Widget::resize(x, y, w, h);
+}
+
 void Label::draw() {
 	Fl_Color colr = fl_color();
 	Fl_Font font = fl_font();

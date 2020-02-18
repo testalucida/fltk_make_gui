@@ -2,6 +2,7 @@
 #define LAYOUTHELPER_H_
 
 #include "constants.h"
+#include "internal.h"
 #include <FL/Enumerations.H>
 #include <vector>
 
@@ -15,54 +16,14 @@ class Label;
 
 typedef unsigned int UINT;
 
-struct Widget {
-	Fl_Widget* pWidget = NULL;
 
-};
-
-typedef std::vector<Widget*> WidgetVector;
-typedef std::vector<WidgetVector*> WidgetTable;
-
-/**
- * Paddings define the space between content and border
- */
-struct Paddings {
-	int n = PAD_N;
-	int e = PAD_E;
-	int s = PAD_S;
-	int w = PAD_W;
-};
-
-/**
- * Margins define the space outside the border
- */
-struct Margins {
-	int n = MARGIN_N;
-	int e = MARGIN_E;
-	int s = MARGIN_S;
-	int w = MARGIN_W;
-};
-
-struct Font_Settings {
-	Fl_Font labelfont = 1; //FL_HELVETICA_BOLD
-	Fl_Fontsize labelsize = 14;
-	Fl_Color labelcolor = FL_DARK_BLUE;
-	Fl_Font textfont = 0; //FL_HELVETICA
-	Fl_Fontsize textsize = 14;
-	Fl_Color textcolor = FL_BLACK;
-};
-
-struct Size {
-	int w = 0;
-	int h = 0;
-};
 
 class LayoutHelper {
 public:
 	LayoutHelper(Fl_Group*);
 	virtual ~LayoutHelper();
-	Font_Settings get_settings() const {return _settings;}
-	void set_settings(Font_Settings& settings);
+	Fonts get_settings() const {return _settings;}
+	void set_settings(Fonts& settings);
 	/**
 	 * Adds a group to a group.
 	 */
@@ -73,8 +34,8 @@ public:
 //	void add(Fl_Group*, Fl_Group*,
 //				int padX, int padY, bool isResizable = true);
 
-	fluy::Label* addLabel(UINT col, UINT row, const char* pTxt);
-	void addInput(Fl_Input* pI, int chars, UINT col, UINT row);
+	fluy::Label* add_label(UINT col, UINT row, const char* pTxt);
+	void add_input(Fl_Input* pI, int chars, UINT col, UINT row);
 	void add(Fl_Group*, Fl_Widget*, int col, int row);
 	Size get_size(const char* pTxt) const;
 	Size get_size(int chars) const;
@@ -96,7 +57,7 @@ private:
 	WidgetTable _widgetTable;
 	Paddings _paddings;
 	Margins _margins;
-	Font_Settings _settings;
+	Fonts _settings;
 	int _lbl_dist = 3; //space between label and widget
 	//used to calculate input fields width and height:
 	const char* _pTeststring = "wegfeiaulm";

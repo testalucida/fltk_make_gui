@@ -34,8 +34,7 @@ LayoutHelper::~LayoutHelper() {
 //	add(pGrpParent, pGrp, padY, padX, padY, padX, isResizable);
 //}
 
-Label* LayoutHelper::addLabel(UINT col, UINT row, char const *pTxt)
-{
+Label* LayoutHelper::add_label(UINT col, UINT row, char const *pTxt) {
 	ensure_table_size(col, row);
 	fl_font(_settings.labelfont, _settings.labelsize);
 	Size size = get_size(pTxt);
@@ -52,14 +51,18 @@ Label* LayoutHelper::addLabel(UINT col, UINT row, char const *pTxt)
 	return pLbl;
 }
 
-void LayoutHelper::addInput(Fl_Input *pI, int chars, UINT col, UINT row) {
+void LayoutHelper::add_input(Fl_Input *pI, int chars, UINT col, UINT row) {
 	ensure_table_size(col, row);
 	Size size = get_size(chars);
 	size.w += (_paddings.w + _paddings.e);
 	size.h += (_paddings.n + _paddings.s);
 	((Fl_Widget*)pI)->position(get_x(col), get_y(row));
 	pI->size(size.w, size.h);
+	pI->textcolor(_settings.textcolor);
+	pI->textfont(_settings.textfont);
+	pI->textsize(_settings.textsize);
 	set(pI, col, row);
+	make_group_fit();
 }
 
 
@@ -124,7 +127,6 @@ int LayoutHelper::get_x(UINT col) const {
 	}
 
 	return x;
-
 }
 
 int LayoutHelper::get_y(UINT row) const {
@@ -140,7 +142,7 @@ int LayoutHelper::get_widgets_in_row(int row, WidgetVector *pWv) {
 	return 0;
 }
 
-void LayoutHelper::set_settings(Font_Settings &settings) {
+void LayoutHelper::set_settings(Fonts &settings) {
 	_settings.labelcolor = settings.labelcolor;
 	_settings.labelfont = settings.labelfont;
 	_settings.labelsize = settings.labelsize;
@@ -198,7 +200,19 @@ void LayoutHelper::make_group_fit() const {
 
 	Fl_Widget* pW = get_broadest_widget(_widgetTable.size() - 1);
 	int w = pW->x() + pW->w() + _margins.e;
-	_pGrp->size(w, hmax);
+
+	vector<Fl_Widget*> childVec;
+	for (int i = 0, imax = _pGrp->children(); i < imax; i++) {
+		childVec.push_back(_pGrp->child(0));
+		_pGrp->remove(_pGrp->child(0));
+	}
+
+	_pGrp->size(w, hmax+5);
+
+	for (auto w : childVec) {
+		_pGrp->add(w);
+	}
+
 }
 
 int LayoutHelper::get_column_height(int col) const {

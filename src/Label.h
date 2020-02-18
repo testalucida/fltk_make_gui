@@ -10,6 +10,7 @@ class Label: public Fl_Widget {
 public:
 	Label(int x, int y, int w, int h, const char* pTxt);
 	virtual ~Label();
+	void resize(int x, int y, int w, int h);
 
 	void draw();
 private:
