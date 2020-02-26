@@ -9,6 +9,10 @@
 #include <FL/Fl_Widget.H>
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Group.H>
+#include <FL/Fl_Double_Window.H>
+#include <FL/Fl_Tile.H>
+#include <FL/Fl_Tabs.H>
+#include <FL/Fl_Scroll.H>
 #include "Label.h"
 #include <string>
 #include <cmath>
@@ -63,6 +67,15 @@ WidgetDef::WidgetDef(Fl_Widget* pWidget, int colspan, int rowspan) {
 	this->pWidget = pWidget;
 	this->colspan = colspan;
 	this->rowspan = rowspan;
+	set_label_attributes();
+}
+
+void WidgetDef::set_label_attributes() {
+	if (pWidget) {
+		pWidget->labelfont(settings.fonts.labelfont);
+		pWidget->labelsize(settings.fonts.labelsize);
+		pWidget->labelcolor(settings.fonts.labelcolor);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -77,6 +90,15 @@ InOutWidgetDef::InOutWidgetDef(Fl_Input* p, int n_chars_wide, int n_chars_high,
 	this->n_chars_high = n_chars_high;
 	type = (n_chars_high == 1) ? WidgetType::SINGLE_IN_OUT :
 							     WidgetType::MULTI_IN_OUT;
+	set_label_attributes();
+	TextMeasure& tm = TextMeasure::inst();
+	Fl_Font font = settings.fonts.textfont;
+	Fl_Fontsize fontsize = settings.fonts.textsize;
+	Size size = tm.get_size(n_chars_wide, font, fontsize);
+	p->size(size.w, size.h + PAD_N + PAD_S);
+	p->textfont(font);
+	p->textsize(fontsize);
+	p->textcolor(settings.fonts.textcolor);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -98,7 +120,13 @@ GroupDef::~GroupDef() {
 
 
 void GroupDef::add(WidgetDef* pWiDef, int col, int row) {
+	//put it in the children widget table:
 	children.add(pWiDef, col, row);
+	//set position of widget:
+	Fl_Widget* p = pWiDef->pWidget;
+	int x = get_x(col) + pWiDef->settings.margins.w;
+	int y = get_y(row) + pWiDef->settings.margins.n;
+	p->position(x, y);
 }
 
 const WidgetDefVector& GroupDef::get_children(int col) const {
@@ -111,7 +139,7 @@ bool GroupDef::has_grouptype_children() const {
 }
 
 int GroupDef::get_x(int col) const {
-	int x = settings.margins.w;
+	int x = this->x;
 	if (columns() <= col) {
 		string msg = "GroupDef::get_x(): Group has no column ";
 		msg.append(to_string(col));
@@ -124,88 +152,157 @@ int GroupDef::get_x(int col) const {
 
 	//do we have a widget in this column?
 	//If so, return its x().
-	WidgetDefVector* pWv = children.get(col);
-	if (pWv->size() > 0) {
-		for (auto w : *pWv) {
-			if (w and w->pWidget) {
-				return w->pWidget->x();
-			}
-		}
-	}
+//	WidgetDefVector* pWv = children.get(col);
+//	if (pWv->size() > 0) {
+//		for (auto w : *pWv) {
+//			if (w && w->pWidget) {
+//				return w->pWidget->x();
+//			}
+//		}
+//	}
 
 	//no widgets yet in this column.
 	//search for the broadest widget in the column to the left.
 	//it's decisive for calculating the x value of this column.
-	Fl_Widget* pW = get_broadest_widget(col-1);
-	if (pW) {
-		return pW->x() + pW->w() + settings.margins.e + x;
+	WidgetDef* pWiDef = get_broadest_widget(col-1);
+	if (pWiDef) {
+		Fl_Widget* pW = pWiDef->pWidget;
+		if (pW) {
+			return pW->x() + pW->w() + pWiDef->settings.margins.e;
+		}
 	}
 
 	return x;
 }
 
 int GroupDef::get_y(int row) const {
-	int y = settings.margins.n;
-	if (row == 0) {
-		return y;
+	if (rows() <= row) {
+		string msg = "GroupDef::get_y(): Group has no row ";
+		msg.append(to_string(row));
+		throw range_error(msg);
+	}
+
+	int y = this->y;
+
+	for(int r = row-1; r > -1; r--) {
+		WidgetDef* pWiDef = get_highest_widget(r);
+		if (pWiDef) {
+			Fl_Widget* p = pWiDef->pWidget;
+			y += (p->y() + p->h() + pWiDef->settings.margins.s);
+			break;
+		}
 	}
 
 	return y;
 }
 
-Fl_Widget* GroupDef::get_broadest_widget(int col) const {
-	Fl_Widget* pW = NULL;
+WidgetDef* GroupDef::get_broadest_widget(int col) const {
+	WidgetDef* pWiDef = NULL;
 	int maxx = 0;
-	WidgetDefVector* pWv = children.get(col);
-	if (pWv->size() > 0) {
-		for (auto w : *pWv) {
-			Fl_Widget* p = w->pWidget;
-			if (w and p) {
-				if (!pW) {
-					pW = p;
+	WidgetDefVector* pCol = children.get(col);
+	if (pCol->size() > 0) {
+		for (auto wd : *pCol) {
+			Fl_Widget* p = wd->pWidget;
+			if (wd and p) {
+				if (!pWiDef) {
+					pWiDef = wd;
 					maxx = p->x() + p->w();
 				} else {
 					int right = p->x() + p->w();
 					if (right > maxx) {
 						maxx = right;
-						pW = p;
+						pWiDef = wd;
 					}
 				}
 			}
 		}
 	}
-	return pW;
+	return pWiDef;
+}
+
+WidgetDef* GroupDef::get_highest_widget(int row) const {
+	WidgetDefVector col;
+	children.get(row, &col);
+	int H = 0;
+	WidgetDef* pWiDef = NULL;
+	for (auto wd : col) {
+		Fl_Widget* p = wd->pWidget;
+		int y_bot = p->y() + p->h() + wd->settings.margins.s;
+		if (y_bot > H) {
+			H = y_bot;
+			pWiDef = wd;
+		}
+	}
+	return pWiDef;
 }
 
 Fl_Group* GroupDef::create_group() {
-	//Precondition: there's no groupdef child in this group.
-	//
-	//Iterate over all widgetDefs, calculate each Fl_Widget's position
-	//and size and create a Fl_Group objects according to
-	//the Fl_Widget*s positions and sizes.
-	//Finally add the Fl_Widget*s to the created Fl_Group.
-	if (has_grouptype_children()) {
-		throw runtime_error("GroupDef::create_group: no group child allowed.");
+	//Get width of group which is defined by the broadest widget
+	//in the mostright column.
+	//Get height of group which is defined by the hihgest widget
+	//in the bottommost row.
+	//Instantiate a Fl_Group object accordingly.
+	//Add all Fl_Widget objects to the new Fl_Group.
+	//Make group resizable as appropriate.
+
+	if (columns() == 0 || rows() == 0) {
+		return new Fl_Group(this->x, this->y, 0, 0);
 	}
 
-	for (int c = 0, cmax = columns(); c < cmax; c++) {
-		int x = get_x(c);
-		for (int r = 0, rmax = rows(c); r < rmax; r++) {
-			WidgetDef& widef = children.get(c, r);
-			Fl_Widget* pW = widef.pWidget;
-			int y = get_y(r);
-			//set position:
-			pW->position(x, y);
-			set_size_and_font(widef);
+	int grp_w = 0, grp_h = 0;
+	//get broadest widget of the last column:
+	WidgetDef* pWiDef = get_broadest_widget(columns()-1);
+	if (pWiDef) {
+		Fl_Widget* p = pWiDef->pWidget;
+		if (p) {
+			grp_w = p->x() + p->w() + pWiDef->settings.margins.e;
 		}
 	}
-	//calculate group's position:
-
-	//calculate group's size:
+	//get highest widget of the last row:
+	pWiDef = get_highest_widget(rows()-1);
+	if (pWiDef) {
+		Fl_Widget* p = pWiDef->pWidget;
+		if (p) {
+			grp_h = p->y() + p->h() + pWiDef->settings.margins.s;
+		}
+	}
 
 	//create Fl_Group:
+	Fl_Group* pGrp = NULL;
+	switch (this->grouptype) {
+	case GroupType::DOUBLE_WINDOW:
+		pGrp = new Fl_Double_Window(this->x, this->y, grp_w, grp_h);
+		break;
+	case GroupType::GROUP:
+		pGrp = new Fl_Group(this->x, this->y, grp_w, grp_h);
+		break;
+	case GroupType::SCROLL:
+		pGrp = new Fl_Scroll(this->x, this->y, grp_w, grp_h);
+		break;
+	case GroupType::TAB:
+		pGrp = new Fl_Tabs(this->x, this->y, grp_w, grp_h);
+		break;
+	case GroupType::TILE:
+		pGrp = new Fl_Tile(this->x, this->y, grp_w, grp_h);
+		break;
+	default:
+		throw runtime_error("GroupDef::create_group: unknown GroupType");
+	}
 
-	return NULL;
+	//add widgets:
+	pGrp->end();
+	for (int c = 0, cmax = columns(); c < cmax; c++) {
+		WidgetDefVector* pCol = children.get(c);
+		for(auto wd : *pCol) {
+			pGrp->add(wd->pWidget);
+		}
+	}
+
+	if (resizable) {
+		pGrp->resizable(pGrp);
+	}
+
+	return pGrp;
 }
 
 void GroupDef::set_size_and_font(WidgetDef& widef) {
@@ -276,9 +373,23 @@ void WidgetDefTable::add(WidgetDef *pWiDef, int col, int row) {
 	(*pCol)[row] = pWiDef;
 }
 
-WidgetDef& WidgetDefTable::get(int col, int row) const {
+int WidgetDefTable::rows() const {
+	if (_table.size() == 0) {
+		return 0;
+	}
+	WidgetDefVector* pWiVec = _table[0];
+	return pWiVec->size();
+}
+
+WidgetDef* WidgetDefTable::get(int col, int row) const {
 	WidgetDef* p = (*(_table[col]))[row];
-	return *p;
+	return p;
+}
+
+void WidgetDefTable::get(int row, WidgetDefVector* pRowWidgets) const {
+	for (auto wvec : _table) {
+		pRowWidgets->push_back(wvec->at(row));
+	}
 }
 
 bool WidgetDefTable::has_grouptype_children() const {

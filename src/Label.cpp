@@ -17,7 +17,7 @@ Label::~Label() {
 }
 
 void Label::resize(int x, int y, int w, int h) {
-//	Fl_Widget::resize(x, y, this->w(), this->h());
+	//Fl_Widget::resize(x, y, this->w(), this->h());
 	Fl_Widget::resize(x, y, w, h);
 }
 

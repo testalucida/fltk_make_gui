@@ -29,9 +29,9 @@ typedef std::vector<WidgetVector*> WidgetTable;
  */
 struct Paddings {
 	int n = PAD_N;
-	int e = PAD_E;
+	//int e = PAD_E;
 	int s = PAD_S;
-	int w = PAD_W;
+	//int w = PAD_W;
 };
 
 /**

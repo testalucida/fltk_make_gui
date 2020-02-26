@@ -73,7 +73,7 @@ public:
 	 * (e.g. Fl_Input(1, 2, 50, 25, "Enter your name:")) you create them
 	 * without label and make a separate call to add(const char* pLbl).
 	 */
-	Settings& add(const char* pLbl, int col, int row,
+	Settings& add_label(const char* pLbl, int col, int row,
 			      int colspan = 1, int rowspan = 1);
 	/**
 	 * Indicates that adding widgets to a group is terminated.

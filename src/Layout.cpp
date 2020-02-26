@@ -25,17 +25,26 @@ Layout::~Layout() {
 }
 
 Settings& Layout::group_begin(GroupType type, bool resizable, int col, int row,
-		                 int colspan, int rowspan )
+		                      int colspan, int rowspan )
 {
 	GroupDef* pGrpDef = new GroupDef(type, true, colspan, rowspan);
 	pGrpDef->resizable = resizable;
-	pGrpDef->colspan = colspan;
-	pGrpDef->rowspan = rowspan;
 	if (!_pGroupdef) {
+		if (type != GroupType::DOUBLE_WINDOW) {
+			throw runtime_error("Layout::group_begin(): "
+					"first group has to be of type DOUBLE_WINDOW");
+		}
 		_pGroupdef = pGrpDef;
 	} else {
+		pGrpDef->colspan = colspan;
+		pGrpDef->rowspan = rowspan;
 		GroupDef* pParent = _groups_in_process.back();
 		pGrpDef->pParent = pParent;
+		//get x:
+		pGrpDef->x = pParent->get_x(col);
+		//get y:
+		pGrpDef->y = pParent->get_y(row);
+
 		//add the new GroupDef object to its parent's children table:
 		pParent->add(pGrpDef, col, row);
 	}
@@ -60,22 +69,25 @@ Fl_Group* Layout::group_end() {
 	return pGrp;
 }
 
-//Fl_Group* Layout::layout_end() {
-//	return group_end();
-//}
-
-Settings& Layout::add(const char *pTxt, int col, int row,
-		         int colspan, int rowspan)
+Settings& Layout::add_label(const char *pTxt, int col, int row,
+		                    int colspan, int rowspan)
 {
 	//create WidgetDef for the label:
 	Label* pLabel = new Label(0, 0, 0, 0, pTxt);
 	WidgetDef* pwd = new WidgetDef(pLabel);
 	pwd->type = WidgetType::LABEL;
-	return add_widgetdef(pwd, col, row);
 
+	//set size:
+	Fl_Font font = pwd->settings.fonts.labelfont;
+	Fl_Fontsize fontsize = pwd->settings.fonts.labelsize;
+	Size size = TextMeasure::inst().get_size(pTxt, font, fontsize);
+	pLabel->size(size.w, size.h + PAD_N + PAD_S);
+
+	return add_widgetdef(pwd, col, row);
 }
 
-Settings& Layout::add(Fl_Widget* p, int col, int row, int colspan, int rowspan) {
+Settings& Layout::add(Fl_Widget* p, int col, int row, int colspan, int rowspan)
+{
 	WidgetDef* pwd = new WidgetDef(p, colspan, rowspan);
 	return add_widgetdef(pwd, col, row);
 }
@@ -106,17 +118,5 @@ Settings& Layout::add_widgetdef(WidgetDef* pwd, int col, int row)
 	return pwd->settings;
 }
 
-//Label* Layout::createLabel(const char *pTxt) {
-//	Size size = TextMeasure::inst().
-//			 get_size(pTxt, _settings.labelfont, _settings.labelsize);
-//	size.w += (_paddings.w + _paddings.e);
-//	size.h += (_paddings.n + _paddings.s);
-//
-//	Label *pLbl = new Label(0, 0, size.w, size.h, pTxt);
-//	pLbl->labelcolor(_settings.labelcolor);
-//	pLbl->labelfont(_settings.labelfont);
-//	pLbl->labelsize(_settings.labelsize);
-//	return pLbl;
-//}
 
 } //namespace fluy

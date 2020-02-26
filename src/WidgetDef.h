@@ -54,16 +54,13 @@ class WidgetDef {
 public:
 	WidgetDef(Fl_Widget*, int colspan=1, int rowspan=1);
 	virtual ~WidgetDef() {}
+	void set_label_attributes();
 public:
 	//static int id;
 	WidgetDef* pParent = NULL;
 	//char type = 'W';
 	WidgetType type = WidgetType::OTHER;
 	Fl_Widget* pWidget = NULL;
-	int x = 0;
-	int y = 0;
-	int w = 0;
-	int h = 0;
 	int colspan = 1;
 	int rowspan = 1;
 	Settings settings;
@@ -96,10 +93,11 @@ public:
 	~WidgetDefTable();
 	void add(WidgetDef*, int col, int row);
 	//WidgetDef& add(Fl_Widget*, int col, int row, int colspan=1, int rowspan=1);
-	WidgetDef& get(int col, int row) const;
+	WidgetDef* get(int col, int row) const;
 	int columns() const {return _table.size();}
-	int rows(int col) const {return (*(_table[col])).size();}
+	int rows() const;
 	WidgetDefVector* get(int col) const {return _table[col];}
+	void get(int row, WidgetDefVector*) const;
 	bool has_grouptype_children() const;
 	//WidgetDef* get(int col, int row) const;
 public:
@@ -125,18 +123,28 @@ public:
 	~GroupDef();
 	void add(WidgetDef*, int col, int row);
 	int columns() const {return children.columns();}
-	int rows(int col) const {return children.rows(col);}
+	int rows() const {return children.rows();}
 	const WidgetDefVector& get_children(int col) const;
 	bool has_grouptype_children() const;
 	int get_x(int col) const;
+	/**
+	 * Provides the y value for the given row.
+	 * Note:
+	 * margins.s of row-1 is included, margins.n of row is not.
+	 */
 	int get_y(int row) const;
-	Fl_Widget* get_broadest_widget(int col) const;
+	WidgetDef* get_broadest_widget(int col) const;
+	WidgetDef* get_highest_widget(int row) const;
 	Fl_Group* create_group();
 private:
 	void set_size_and_font(WidgetDef&);
 public:
 	GroupType grouptype = GroupType::UNK;
 	bool resizable = false;
+	int x = 0;
+	int y = 0;
+	int w = 0;
+	int h = 0;
 	WidgetDefTable children;
 };
 /////////////////////////////////////////////////////////////////
