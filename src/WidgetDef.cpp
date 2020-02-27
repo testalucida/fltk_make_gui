@@ -17,6 +17,7 @@
 #include <string>
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 using namespace std;
 
@@ -95,6 +96,7 @@ InOutWidgetDef::InOutWidgetDef(Fl_Input* p, int n_chars_wide, int n_chars_high,
 	Fl_Font font = settings.fonts.textfont;
 	Fl_Fontsize fontsize = settings.fonts.textsize;
 	Size size = tm.get_size(n_chars_wide, font, fontsize);
+	size.h *= n_chars_high;
 	p->size(size.w, size.h + PAD_N + PAD_S);
 	p->textfont(font);
 	p->textsize(fontsize);
@@ -129,6 +131,25 @@ void GroupDef::add(WidgetDef* pWiDef, int col, int row) {
 	p->position(x, y);
 }
 
+void GroupDef::set_widgets_position() {
+	for (int c = 0, cmax = columns(); c < cmax; c++) {
+		int X = get_x(c);
+		const WidgetDefVector& widefs = get_children(c);
+		int r = 0;
+		for (auto wd : widefs) {
+			if (wd) {
+				Fl_Widget* p = wd->pWidget;
+				if (p) {
+					int x = X + wd->settings.margins.w;
+					int y = get_y(r) + wd->settings.margins.n;
+					p->position(x, y);
+				}
+			}
+			r++;
+		}
+	}
+}
+
 const WidgetDefVector& GroupDef::get_children(int col) const {
 	WidgetDefVector* pCol = children.get(col);
 	return *pCol;
@@ -150,18 +171,6 @@ int GroupDef::get_x(int col) const {
 		return x;
 	}
 
-	//do we have a widget in this column?
-	//If so, return its x().
-//	WidgetDefVector* pWv = children.get(col);
-//	if (pWv->size() > 0) {
-//		for (auto w : *pWv) {
-//			if (w && w->pWidget) {
-//				return w->pWidget->x();
-//			}
-//		}
-//	}
-
-	//no widgets yet in this column.
 	//search for the broadest widget in the column to the left.
 	//it's decisive for calculating the x value of this column.
 	WidgetDef* pWiDef = get_broadest_widget(col-1);
@@ -202,19 +211,21 @@ WidgetDef* GroupDef::get_broadest_widget(int col) const {
 	WidgetDefVector* pCol = children.get(col);
 	if (pCol->size() > 0) {
 		for (auto wd : *pCol) {
-			Fl_Widget* p = wd->pWidget;
-			if (wd and p) {
-				if (!pWiDef) {
-					pWiDef = wd;
-					maxx = p->x() + p->w();
-				} else {
-					int right = p->x() + p->w();
-					if (right > maxx) {
-						maxx = right;
+			if (wd) {
+				Fl_Widget* p = wd->pWidget;
+				if (p) {
+					if (!pWiDef) {
 						pWiDef = wd;
+						maxx = p->x() + p->w();
+					} else {
+						int right = p->x() + p->w();
+						if (right > maxx) {
+							maxx = right;
+							pWiDef = wd;
+						}
 					}
-				}
-			}
+				} //if (p)
+			} //if (wd)
 		}
 	}
 	return pWiDef;
@@ -226,11 +237,15 @@ WidgetDef* GroupDef::get_highest_widget(int row) const {
 	int H = 0;
 	WidgetDef* pWiDef = NULL;
 	for (auto wd : col) {
-		Fl_Widget* p = wd->pWidget;
-		int y_bot = p->y() + p->h() + wd->settings.margins.s;
-		if (y_bot > H) {
-			H = y_bot;
-			pWiDef = wd;
+		if (wd) {
+			Fl_Widget* p = wd->pWidget;
+			if (p) {
+				int y_bot = p->y() + p->h() + wd->settings.margins.s;
+				if (y_bot > H) {
+					H = y_bot;
+					pWiDef = wd;
+				}
+			}
 		}
 	}
 	return pWiDef;
@@ -249,6 +264,8 @@ Fl_Group* GroupDef::create_group() {
 		return new Fl_Group(this->x, this->y, 0, 0);
 	}
 
+	set_widgets_position();
+
 	int grp_w = 0, grp_h = 0;
 	//get broadest widget of the last column:
 	WidgetDef* pWiDef = get_broadest_widget(columns()-1);
@@ -259,7 +276,9 @@ Fl_Group* GroupDef::create_group() {
 		}
 	}
 	//get highest widget of the last row:
-	pWiDef = get_highest_widget(rows()-1);
+	int nRows = rows();
+	int r = nRows - 1;
+	pWiDef = get_highest_widget(r);
 	if (pWiDef) {
 		Fl_Widget* p = pWiDef->pWidget;
 		if (p) {
@@ -294,7 +313,9 @@ Fl_Group* GroupDef::create_group() {
 	for (int c = 0, cmax = columns(); c < cmax; c++) {
 		WidgetDefVector* pCol = children.get(c);
 		for(auto wd : *pCol) {
-			pGrp->add(wd->pWidget);
+			if (wd) {
+				pGrp->add(wd->pWidget);
+			}
 		}
 	}
 
@@ -354,22 +375,28 @@ WidgetDefTable::~WidgetDefTable() {
 
 void WidgetDefTable::ensure_table_size(int col, int row) {
 	//enough columns?
-	if ((int)_table.size() <= col) {
+	int nCols = (int)_table.size();
+	if (nCols <= col) {
 		for (int c = _table.size(); c <= col; c++) {
 			WidgetDefVector* pWv = new WidgetDefVector;
 			_table.push_back(pWv);
 		}
 	}
-	//enough rows?
-	WidgetDefVector* pWv = _table.at(col);
-	for (int r = 0; r <= row; r++) {
-		pWv->push_back((WidgetDef*) NULL);
+	//enough rows? !Check each column!
+	for (auto col : _table) {
+		int nRows = col->size();
+		for (int r = nRows; r <= row; r++) {
+			col->push_back((WidgetDef*)NULL);
+		}
 	}
 }
 
 void WidgetDefTable::add(WidgetDef *pWiDef, int col, int row) {
 	ensure_table_size(col, row);
 	WidgetDefVector* pCol = _table[col];
+	cerr << "WidgetDefTable::add at col " << col << " / row " << row << endl;
+	cerr << "\t_table nCols: " << _table.size()
+		 << " / nRows: " << _table[col]->size() << endl;
 	(*pCol)[row] = pWiDef;
 }
 

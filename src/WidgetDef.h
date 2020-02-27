@@ -136,6 +136,7 @@ public:
 	WidgetDef* get_broadest_widget(int col) const;
 	WidgetDef* get_highest_widget(int row) const;
 	Fl_Group* create_group();
+	void set_widgets_position();
 private:
 	void set_size_and_font(WidgetDef&);
 public:

@@ -14,10 +14,13 @@ using namespace fluy;
 
 int main() {
 	Layout lo;
-	lo.group_begin(GroupType::DOUBLE_WINDOW, true, 0, 0);
+	lo.group_begin(GroupType::DOUBLE_WINDOW, false, 0, 0);
 	lo.add_label("Enter your name: ", 0, 0);
 	Fl_Input* pI = new Fl_Input(0,0,0,0);
 	lo.add_in_out(pI, 30, 1, 1, 0);
+	lo.add_label("And your address goes here: ", 0, 1);
+	pI = new Fl_Input(0,0,0,0);
+	lo.add_in_out(pI, 40, 1, 1, 1);
 	Fl_Double_Window* pWin = (Fl_Double_Window*)lo.group_end();
 
 	pWin->show();
